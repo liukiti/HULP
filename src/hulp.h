@@ -3,7 +3,7 @@
 
 #include "driver/gpio.h"
 #include "driver/rtc_io.h"
-#include "driver/adc.h"
+#include "esp_adc/adc_oneshot.h"
 
 #include "hulp_compat.h"
 #include "hulp_types.h"
@@ -42,7 +42,7 @@ esp_err_t hulp_configure_pin(gpio_num_t pin, rtc_gpio_mode_t mode, gpio_pull_mod
  * attenuation: Channel attenuation, one of ADC_ATTEN_DB_0, ADC_ATTEN_DB_2_5, ADC_ATTEN_DB_6 or ADC_ATTEN_DB_11
  * width: Bit capture width, one of ADC_WIDTH_BIT_9, ADC_WIDTH_BIT_10, ADC_WIDTH_BIT_11 or ADC_WIDTH_BIT_12
  */
-esp_err_t hulp_configure_analog_pin(gpio_num_t pin, adc_atten_t attenuation, adc_bits_width_t width);
+esp_err_t hulp_configure_analog_pin(gpio_num_t pin, adc_atten_t attenuation, adc_bitwidth_t width);
 
 /**
  * Prepares GPIOs for use with ULP hardware I2C.

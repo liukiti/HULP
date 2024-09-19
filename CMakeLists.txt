@@ -15,10 +15,16 @@ set(requires
     driver
     soc
     hal
+    esp_adc
+)
+
+set(priv_requires
+    esp_adc
 )
 
 idf_component_register(
     INCLUDE_DIRS "${include_dirs}"
     SRCS "${srcs}"
     REQUIRES "${requires}"
+    PRIV_REQUIRES "${priv_requires}"
 )

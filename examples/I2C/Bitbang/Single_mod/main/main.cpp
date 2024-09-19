@@ -7,9 +7,13 @@
 #include "hulp.h"
 #include "hulp_i2cbb.h"
 
+#include "LIS2DW12Sensor.h"
+#include <Wire.h>
+
 #define PIN_SDA_GPIO GPIO_NUM_27
 #define PIN_SCL_GPIO GPIO_NUM_26
-
+#define PIN_NUM_SDA         27
+#define PIN_NUM_SCL         26
 #define SCL_PIN PIN_SCL_GPIO
 #define SDA_PIN PIN_SDA_GPIO
 
@@ -26,8 +30,8 @@
 // #define SLAVE_READ16_SUBADDR 0x28U
 
 // Set subaddress and value for write:
-#define SLAVE_WRITE_SUBADDR 0x20U
-#define SLAVE_WRITE_VALUE 0x04U
+// #define SLAVE_WRITE_SUBADDR 0x20U
+// #define SLAVE_WRITE_VALUE 0x04U
 
 RTC_DATA_ATTR ulp_var_t ulp_data8_0;
 RTC_DATA_ATTR ulp_var_t ulp_data8_1;
@@ -38,6 +42,12 @@ RTC_DATA_ATTR ulp_var_t ulp_data8_5;
 RTC_DATA_ATTR ulp_var_t ulp_data16;
 RTC_DATA_ATTR ulp_var_t ulp_nacks;
 RTC_DATA_ATTR ulp_var_t ulp_buserrors;
+
+static TwoWire dev_i2c(0);  
+static LIS2DW12Sensor Acc(&dev_i2c, LIS2DW12_I2C_ADD_L);
+
+static int32_t _acc[3];
+static float _temperature;
 
 void init_ulp()
 {
@@ -66,7 +76,6 @@ void init_ulp()
         M_I2CBB_WR(LBL_WRITE_RETURN, LBL_I2C_WRITE_ENTRY, SLAVE_WRITE_SUBADDR, SLAVE_WRITE_VALUE),
     #endif
     
-    #ifdef SLAVE_READ8_SUBADDR0
         M_I2CBB_RD(LBL_READ8_0_RETURN, LBL_I2C_READ_ENTRY, SLAVE_READ8_SUBADDR0),
         I_PUT(R0, R2, ulp_data8_0),
         M_I2CBB_RD(LBL_READ8_1_RETURN, LBL_I2C_READ_ENTRY, SLAVE_READ8_SUBADDR1),
@@ -79,22 +88,8 @@ void init_ulp()
         I_PUT(R0, R2, ulp_data8_4),
         M_I2CBB_RD(LBL_READ8_5_RETURN, LBL_I2C_READ_ENTRY, SLAVE_READ8_SUBADDR5),
         I_PUT(R0, R2, ulp_data8_5),
-    #endif
 
-#ifdef TEMP_SENS
-        I_TSENS(R0, 1000),
-        I_MOVI(R2,0),
-        I_PUT(R0, R2, ulp_tsens_val),
-#endif
         I_WAKE(),
-
-    #ifdef SLAVE_READ16_SUBADDR
-        M_I2CBB_RD(LBL_READ16_RETURN, LBL_I2C_READ_ENTRY, SLAVE_READ16_SUBADDR),
-        I_PUT(R0, R2, ulp_data16),
-        I_WAKE(),
-    #endif
-
-
         I_HALT(),
 
         M_LABEL(LBL_I2C_NACK),
@@ -110,6 +105,7 @@ void init_ulp()
             I_PUT(R0,R2, ulp_buserrors),
             I_WAKE(),
             I_BXR(R3),
+
 
         M_INCLUDE_I2CBB(LBL_I2C_READ_ENTRY, LBL_I2C_WRITE_ENTRY, LBL_I2C_ARBLOST, LBL_I2C_NACK, SCL_PIN, SDA_PIN, SLAVE_ADDR),
     };
@@ -136,7 +132,14 @@ extern "C" void app_main()
     TaskHandle_t main_handle =  xTaskGetCurrentTaskHandle();
     hulp_ulp_isr_register(&ulp_isr, &main_handle);
     hulp_ulp_interrupt_en();
-
+    dev_i2c.begin(PIN_NUM_SDA, PIN_NUM_SCL, 400000);
+    Acc.begin();
+    Acc.Enable_X();
+    Acc.Get_X_Axes(_acc);
+    Acc.Get_Temperature(&_temperature);
+    // lowPowerInit(m_isca, &xTaskToNotify);
+    ESP_LOGW("ADC", "[ACC](mg) x:%ld | y:%ld | z:%ld | [TEMP](oC) %02.2f", 
+                    _acc[0], _acc[1], _acc[2], _temperature);
     init_ulp();
 
     for(;;)

@@ -4,3 +4,5 @@ sdkconfig.old
 sdkconfig
 /.idea
 /cmake-build-*
+dependencies.lock
+managed_components/
